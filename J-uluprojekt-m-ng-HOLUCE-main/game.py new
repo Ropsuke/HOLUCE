@@ -53,7 +53,7 @@ SPAWN_LEVEL = [
 
 STORY_LINES = [
     "I am tired of this city life...",
-    "Every day is the same. Grey. Meaningless.",
+    "Every day is the same. Nigger. Meaningless.",
     "I saw the flyer today.",
     "'Infinite riches hidden in the deep cave.'",
     "It said others went mad trying to find it.",
@@ -64,36 +64,31 @@ STORY_LINES = [
 
 # --- PROCEDURAL GENERATION ---
 def generate_dungeon(width, height, floor_level):
-    # 1. Create a solid block of walls
+    # 1. Teeme seinad
     grid = [['W' for _ in range(width)] for _ in range(height)]
     
-    # 2. Setup the Walker
+    # 2. Seadistame walker-i
     cx, cy = width // 2, height // 2
     walker_x, walker_y = cx, cy
     
-    # 3. Keep track of every floor tile we create
-    # This ensures we never place items in walls
+    # 3. Hoiame meeles põranda koordinaate (et vältida seinte sisse panemist)
     floor_tiles = []
     
-    # Mark the start
+    # Märgime stardi
     grid[cy][cx] = '.'
     floor_tiles.append((cx, cy))
     
-    # 4. The Walk
-    # We want the cave to fill about 40% of the available space
+    # 4. Kõndimine (The Walk)
     target_floors = int((width * height) * 0.4)
-    
     steps_taken = 0
-    # Safety Break: steps_taken < 2000 prevents infinite freeze if it gets stuck
+    
     while len(floor_tiles) < target_floors and steps_taken < 2000:
         steps_taken += 1
-        
-        # Pick a random direction
         direction = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
         next_x = walker_x + direction[0]
         next_y = walker_y + direction[1]
         
-        # BOUNDS CHECK: Ensure we stay inside the map (leaving 1 tile border)
+        # Piiride kontroll
         if 1 < next_x < width - 1 and 1 < next_y < height - 1:
             walker_x, walker_y = next_x, next_y
             
@@ -101,77 +96,56 @@ def generate_dungeon(width, height, floor_level):
                 grid[walker_y][walker_x] = '.'
                 floor_tiles.append((walker_x, walker_y))
 
-    # 5. Place Player (First tile created)
+    # 5. Paneme mängija (Esimene põrandaplaat)
     start_pos = floor_tiles[0]
-    # Note: We don't draw 'P' on grid, the Player object handles drawing.
-    # But we need to ensure it's not a wall string for logic.
+    # Me ei joonista 'P'-d kaardile, sest Player klass joonistab ennast ise,
+    # aga märgime ruudustikus, et see pole sein.
     grid[start_pos[1]][start_pos[0]] = 'P' 
     
-    # 6. Place Stairs (Last tile created)
-    # This guarantees the stairs are at the end of the path
+    # 6. Paneme trepi (Viimane põrandaplaat)
     stair_pos = floor_tiles[-1]
     
-    # Edge case: If map is tiny, don't put stairs on start
+    # Väike kontroll, et trepp ei oleks stardi peal (kui kaart on liiga väike)
     if stair_pos == start_pos and len(floor_tiles) > 1:
         stair_pos = floor_tiles[-2]
         
     grid[stair_pos[1]][stair_pos[0]] = 'S'
     
-    # 7. Generate Items and Enemies
+    # 7. Teeme asjad ja vaenlased
     map_data = ["".join(row) for row in grid]
     items = []
     enemies = []
     
-    # We shuffle the floor list to pick random valid spots
-    # Remove Start and Stairs from the list so we don't spawn enemies on top of you
+    # Võtame kõik põrandad, VÄLJA ARVATUD start ja trepp
     valid_spots = [t for t in floor_tiles if t != start_pos and t != stair_pos]
     
     for tile in valid_spots:
         tx, ty = tile
         roll = random.random()
         
-        # 3% chance for Enemy
+        # 3% Vaenlane
         if roll < 0.03:
             hp = 20 + (floor_level * 5)
             dmg = 2 + floor_level
             name = random.choice(["Rat", "Bat", "Slime", "Goblin"])
             enemies.append(Enemy(tx, ty, name, hp, dmg))
             
-        # 2% chance for Sanity
+        # 2% Sanity jook
         elif roll < 0.05:
             items.append(Item(tx, ty, "sanity"))
             
-        # 1% chance for Ultimatum
+        # 1% Ultimatum jook
         elif roll < 0.06:
             items.append(Item(tx, ty, "ultimatum"))
 
+    # 8. Lõpetame ja saadame andmed tagasi (AINULT ÜKS RETURN LÕPUS)
     return map_data, start_pos, items, enemies
-    
-    grid[walker_y][walker_x] = 'S'
-    start_pos = (cx, cy)
-    grid[cy][cx] = 'P' 
-    
-    map_data = ["".join(row) for row in grid]
-    
-    items = []
-    enemies = []
-    
-    for y in range(height):
-        for x in range(width):
-            if grid[y][x] == '.':
-                if x == cx and y == cy: continue
-                roll = random.random()
-                if roll < 0.03:
-                    hp = 20 + (floor_level * 5)
-                    dmg = 2 + floor_level
-                    name = random.choice(["Rat", "Bat", "Slime", "Goblin"])
-                    enemies.append(Enemy(x, y, name, hp, dmg))
-                elif roll < 0.05:
-                    items.append(Item(x, y, "sanity"))
-                elif roll < 0.06:
-                    items.append(Item(x, y, "ultimatum"))
 
-    return map_data, start_pos, items, enemies
+
+
+
+
+
 
 # --- CLASSES ---
 
