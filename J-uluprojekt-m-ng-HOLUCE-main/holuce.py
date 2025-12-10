@@ -178,8 +178,8 @@ while running:
                 mängija.move_timer = current_time
                 if kas_võit == True:
                     P_OLEK = VÕIT
-        kaamera_x = (mängija.x * RUUT) - (WIDTH // 2) + (RUUT // 2)
-        kaamera_y = (mängija.y * RUUT) - (HEIGHT // 2) + (RUUT // 2)
+            kaamera_x = (mängija.x * RUUT) - (WIDTH // 2) + (RUUT // 2)
+            kaamera_y = (mängija.y * RUUT) - (HEIGHT // 2) + (RUUT // 2)
         for y, rida in enumerate(MAP):
             for x, ruut in enumerate(rida):
                 screen_x = (x * RUUT) - kaamera_x
@@ -197,4 +197,5 @@ while running:
             SCREEN.blit(tekst, (WIDTH//2 - 150, HEIGHT//2 - 50))
                 
     pygame.display.flip()
+
     KELL.tick(60)
