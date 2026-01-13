@@ -30,7 +30,13 @@ SPRITE_ENTITIES_FOLDER = "assets/entities"
 WORD = "HOLUCE"
 
 # visuaal
-FONT = pygame.font.SysFont("arial", 60)
+taust_pilt = pygame.image.load(os.path.join("assets/pictures", "background.png")).convert()
+taust_pilt = pygame.transform.scale(taust_pilt, (WIDTH, HEIGHT))
+väike_taust = pygame.transform.smoothscale(taust_pilt, (WIDTH // 10, HEIGHT // 10))
+UDUNE_TAUST = pygame.transform.smoothscale(väike_taust, (WIDTH, HEIGHT))
+
+FONDI_FAIL = os.path.join("assets/fonts", "ARCADECLASSIC.ttf")
+FONT = pygame.font.Font(FONDI_FAIL, 47)
 RUUT = 64
 VALGE = (255, 255, 255)
 MUST = (0, 0, 0)
@@ -122,11 +128,11 @@ class Player:
 kaamera_x = 0
 kaamera_y = 0
 mängija = Player()
-nupp = pygame.Rect(WIDTH//2 - 200, HEIGHT//2, 400, 100)
+nupp = pygame.Rect(WIDTH//2 - 250, HEIGHT//2 - 50, 500, 100,)
 # main loop
 running = True
 while running:
-    SCREEN.fill(MUST)
+    SCREEN.fill(VALGE)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -149,8 +155,10 @@ while running:
                 pygame.mixer.music.play(-1)
                 praeg_laul = "loop"
     if P_OLEK == MENU:
-        pygame.draw.rect(SCREEN, SININE, nupp)
-        tekst = FONT.render("Sisene koopasse", True, MUST)
+        SCREEN.blit(UDUNE_TAUST, (0, 0))
+        pygame.draw.rect(SCREEN, MUST, nupp, border_radius=20)
+        pygame.draw.rect(SCREEN, MUST, nupp, border_radius=30)
+        tekst = FONT.render("Sisene koopasse", True, VALGE)
         tsenter = tekst.get_rect(center=nupp.center)
         SCREEN.blit(tekst, tsenter)
     if P_OLEK == MÄNG:
