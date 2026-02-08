@@ -95,3 +95,4 @@ def koobas(kõrgus, laius):
     return grid
 
 kaart = 3
+kkakajunn = "pulk"
