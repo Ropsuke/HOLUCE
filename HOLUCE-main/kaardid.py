@@ -93,3 +93,5 @@ def koobas(kõrgus, laius):
     grid[start_y][start_x] = "S"
     grid[y][x] = "D"
     return grid
+
+kaart = 3
