@@ -1,6 +1,7 @@
 import pygame
 import os
 import json
+import time
 from kaardid import koobas
 from kaardid import spawn_map
 from kaardid import minu_poe_kaart
@@ -370,6 +371,14 @@ while running:
                     MAP = spawn_map
                     mängija.set_start_pos(MAP)
                     P_OLEK = MÄNG_SPAWN
+                    SCREEN.fill(MUST)
+                    tekst = FONT.render("Loading...", True, VALGE)
+                    SCREEN.blit(tekst, tekst.get_rect(center=(WIDTH // 2, HEIGHT // 2)))
+                    pygame.display.flip()
+                    # Sunnime kaamera kohe mängija peale, et ta ei peaks "järele jooksma"
+                    kaamera_x = mängija.pix_x - (WIDTH // 2) + (RUUT // 2)
+                    kaamera_y = mängija.pix_y - (HEIGHT // 2) + (RUUT // 2)
+                    time.sleep(0.3)
                     pygame.mixer.music.load(MUUSIKA_SPAWN)
                     pygame.mixer.music.play(-1)
                     praeg_laul = "forest"
@@ -414,8 +423,8 @@ while running:
         # ── KAAMERA ──
         siht_x = mängija.pix_x - (WIDTH // 2) + (RUUT // 2)
         siht_y = mängija.pix_y - (HEIGHT // 2) + (RUUT // 2)
-        kaamera_x += (siht_x - kaamera_x) * 0.1
-        kaamera_y += (siht_y - kaamera_y) * 0.1
+        kaamera_x += (siht_x - kaamera_x) * 0.225
+        kaamera_y += (siht_y - kaamera_y) * 0.225
 
         # ── ÜLEMINEKUD ──
         if tulemus != 0:
@@ -426,7 +435,7 @@ while running:
                 pygame.mixer.music.load(MUUSIKA_CAVE_ALG)
                 pygame.mixer.music.play(0)
                 praeg_laul = "intro"
-
+                
             elif P_OLEK == MÄNG_SPAWN and tulemus == 2:
                 MAP = minu_poe_kaart
                 mängija.set_start_pos(MAP)
