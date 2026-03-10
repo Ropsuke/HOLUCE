@@ -1,60 +1,29 @@
-import random
 import pygame
 import os
-import json
 import time
-from kaardid import koobas
-from kaardid import spawn_map
-from kaardid import minu_poe_kaart
+from kaardid import *
+from seaded import *
+from mangija import *
+from kaamera import *
+from muusika import MuusikaHaldur, LAUL_LÄBI
+from salvestus import salvesta_mang, lae_mang
 
 pygame.init()
-pygame.mixer.init()
 
-#  MUUSIKA
+# Ei tea kuhu panna, seega panen siia
 
-MUUSIKA_MENÜÜ    = os.path.join("assets/music", "menu.mp3")
-MUUSIKA_CAVE_ALG = os.path.join("assets/music", "cave_begin.mp3")
-MUUSIKA_CAVE_REP = os.path.join("assets/music", "cave_rep.mp3")
-MUUSIKA_SPAWN    = os.path.join("assets/music", "forest.mp3")
-MUUSIKA_POOD     = os.path.join("assets/music", "shop.mp3")
-
-LAUL_LÄBI = pygame.USEREVENT + 1
-pygame.mixer.music.set_endevent(LAUL_LÄBI)
-pygame.mixer.music.load(MUUSIKA_MENÜÜ)
-pygame.mixer.music.play(-1)
-praeg_laul = "menu"
-
+FONT = pygame.font.SysFont(FONDI_NIMI, FONDI_SUURUS)
+muusika = MuusikaHaldur()
+muusika.mängi_menüü()
 
 #  EKRAAN
 
-info   = pygame.display.Info()
-WIDTH  = info.current_w
-HEIGHT = info.current_h - 60
-SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE | pygame.SCALED, vsync=1)
+ekraani_info   = pygame.display.Info()
+WIDTH  = ekraani_info.current_w
+HEIGHT = ekraani_info.current_h
+SCREEN = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED, vsync=1)
 pygame.display.set_caption("Holuce")
 KELL = pygame.time.Clock()
-FPS  = 60
-kaamera_x = 0
-kaamera_y = 0
-
-SPRITE_ENTITIES_FOLDER = "assets/entities"
-SPRITE_PILDID_FOLDER   = "assets/pictures"
-
-
-#  VÄRVID
-
-FONT            = pygame.font.SysFont("arial", 60)
-PLAYER_RUUT = 128
-RUUT            = 64
-VALGE           = (255, 255, 255)
-MUST            = (0,   0,   0)
-HALL            = (122, 122, 122)
-SININE          = (0,   0,   255)
-PRUUN           = (139, 69,  19)
-TUME_HALL       = (64,  64,  64)
-TUME_ROHELINE   = (0,   70,  0)
-TUME_PRUUN      = (100, 50,  0)
-TUME_TUME_PRUUN = (65,  30,  0)
 
 #  PILDID
 
@@ -67,46 +36,7 @@ grass_pilt1 = pygame.image.load(
 ).convert_alpha()
 grass_pilt1 = pygame.transform.scale(grass_pilt1, (RUUT, RUUT))
 
-#  OLEKUD
-
-MENU        = "menu"
-MÄNG_KOOBAS = "mäng"
-MÄNG_SPAWN  = "spawn"
-MÄNG_POOD   = "pood"
-VÕIT        = "võit"
-P_OLEK      = MENU
-
-
-#  KAARTIDE VÄRVID
-
-SPAWN_VÄRVID = {
-    "E":  TUME_ROHELINE,
-    "K":  TUME_HALL,
-    "T":  PRUUN,
-    "TT": TUME_PRUUN,
-    "D":  PRUUN,
-}
-SPAWN_PILDID = {"g", "S"}
-
-KOOBAS_VÄRVID = {
-    "W": HALL,
-    ".": TUME_HALL,
-    "S": TUME_HALL,
-    "D": PRUUN,
-}
-KOOBAS_PILDID = set()
-
-POOD_VÄRVID = {
-    "g":  PRUUN,
-    "SS": TUME_PRUUN,
-    ".":  TUME_PRUUN,
-    "S":  TUME_PRUUN,
-    "E":  TUME_TUME_PRUUN,
-}
-POOD_PILDID = set()
-
 # JOONISTAMINE
-random.randint(1,2)
 
 def joonista_kaart(kaart, värvid, kx, ky, pildid=None):
     if pildid is None:
@@ -134,169 +64,14 @@ def loo_valgus():
 loo_valgus()
 
 # AKTIIVNE KAART
+
 MAP = spawn_map
-
-
-#  PLAYER KLASS — VABA LIIKUMINE
-VABAD = {".", "S", "D", "g", "TT", "SS"}
-
-class Player:
-    def __init__(self):
-        self.pix_x = 1.0 * RUUT
-        self.pix_y = 1.0 * RUUT
-        self.kiirus = 7
-        self.hb_ox = 23      # hitbox X nihe sprite'i seest
-        self.hb_oy = 95      # hitbox Y nihe sprite'i seest
-        self.hb_w  = 48      # hitbox laius
-        self.hb_h  = 32      # hitbox kõrgus
-
-        pilt = os.path.join(SPRITE_ENTITIES_FOLDER, "player.png")
-        lae = pygame.image.load(pilt).convert_alpha()
-        skaleeritud = pygame.transform.scale(lae, (PLAYER_RUUT/2, PLAYER_RUUT))
-        self.img_parem = skaleeritud
-        self.img_vasak = pygame.transform.flip(skaleeritud, True, False)
-        self.image = self.img_parem
-
-    def _on_vaba(self, px, py, kaart):
-        vasak  = px + self.hb_ox
-        parem  = px + self.hb_ox + self.hb_w
-        üleval = py + self.hb_oy
-        all_   = py + self.hb_oy + self.hb_h
-
-        nurgad = [
-            (vasak, üleval),  
-            (parem, üleval),  
-            (vasak, all_),     
-            (parem, all_),     
-        ]
-
-        for nx, ny in nurgad:
-            gx = int(nx // RUUT)
-            gy = int(ny // RUUT)
-
-            if gy < 0 or gy >= len(kaart) or gx < 0 or gx >= len(kaart[0]):
-                return False
-            if kaart[gy][gx] not in VABAD:
-                return False
-
-        return True
-
-    # ── Vaba liikumine ──
-    def move_vaba(self, dx, dy, kaart):
-        sammx = dx * self.kiirus
-        sammy = dy * self.kiirus
-
-        # ── X-telg eraldi ──
-        if self._on_vaba(self.pix_x + sammx, self.pix_y, kaart):
-            self.pix_x += sammx
-        else:
-            astme_suund = 1 if sammx > 0 else -1
-            for _ in range(int(abs(sammx))):
-                if self._on_vaba(self.pix_x + astme_suund, self.pix_y, kaart):
-                    self.pix_x += astme_suund
-                else:
-                    break
-        # ── Y-telg eraldi (kasutab juba uuendatud pix_x!) ──
-        if self._on_vaba(self.pix_x, self.pix_y + sammy, kaart):
-            self.pix_y += sammy
-        else:
-            # Sama loogika Y-teljega
-            astme_suund = 1 if sammy > 0 else -1
-            for _ in range(int(abs(sammy))):
-                if self._on_vaba(self.pix_x, self.pix_y + astme_suund, kaart):
-                    self.pix_y += astme_suund
-                else:
-                    break
-
-        if dx > 0:
-            self.image = self.img_parem
-        elif dx < 0:
-            self.image = self.img_vasak
-
-        kesk_x = int((self.pix_x + self.hb_ox + self.hb_w / 2) // RUUT)
-        kesk_y = int((self.pix_y + self.hb_oy + self.hb_h / 2) // RUUT)
-
-        if 0 <= kesk_y < len(kaart) and 0 <= kesk_x < len(kaart[0]):
-            ruut = kaart[kesk_y][kesk_x]
-            if ruut == "D":  return 1
-            if ruut == "TT": return 2
-            if ruut == "SS": return 3
-
-        return 0
-
-    # ── Joonistamine ──
-    def draw(self, kx, ky):
-        SCREEN.blit(self.image, (self.pix_x - kx+15, self.pix_y - ky))
-
-    def draw_hitbox(self, kx, ky):
-        """Kutsuge seda kui tahate hitboxi näha (punane kast)."""
-        hb = pygame.Rect(
-            self.pix_x + self.hb_ox - kx,
-            self.pix_y + self.hb_oy - ky,
-            self.hb_w, self.hb_h
-        )
-        pygame.draw.rect(SCREEN, (255, 0, 0), hb, 2)
-
-    # ── Alguspositsioon ──
-    def set_start_pos(self, kaart):
-        for y, rida in enumerate(kaart):
-            for x, ruut in enumerate(rida):
-                if ruut == "S":
-                    self.pix_x = float(x * RUUT)
-                    self.pix_y = float(y * RUUT)
-                    return
-        self.pix_x = float(RUUT)
-        self.pix_y = float(RUUT)
-
-
-#  SALVESTA / LAE
-
-def salvesta_mang():
-    andmed = {
-        "pix_x": mängija.pix_x,
-        "pix_y": mängija.pix_y,
-        "olek":  P_OLEK,
-        "kaart": MAP if P_OLEK == MÄNG_KOOBAS else None,
-    }
-    with open("savegame.json", "w") as f:
-        json.dump(andmed, f)
-    print("Mäng salvestatud!")
-
-def lae_mang():
-    global MAP, P_OLEK, praeg_laul
-    if not os.path.exists("savegame.json"):
-        print("Salvestust ei leitud!")
-        return
-    with open("savegame.json", "r") as f:
-        andmed = json.load(f)
-
-    mängija.pix_x = float(andmed["pix_x"])
-    mängija.pix_y = float(andmed["pix_y"])
-    P_OLEK = andmed["olek"]
-
-    if P_OLEK == MÄNG_KOOBAS:
-        MAP = andmed["kaart"]
-        pygame.mixer.music.load(MUUSIKA_CAVE_ALG)
-        pygame.mixer.music.play(0)
-        praeg_laul = "intro"
-    elif P_OLEK == MÄNG_SPAWN:
-        MAP = spawn_map
-        pygame.mixer.music.load(MUUSIKA_SPAWN)
-        pygame.mixer.music.play(-1)
-        praeg_laul = "forest"
-    elif P_OLEK == MÄNG_POOD:
-        MAP = minu_poe_kaart
-        pygame.mixer.music.load(MUUSIKA_POOD)
-        pygame.mixer.music.play(-1)
-        praeg_laul = "shop"
-    print("Mäng laetud!")
-
 
 #  INIT
 
-mängija   = Player()
-kaamera_x = 0
-kaamera_y = 0
+P_OLEK = MENU
+mängija = Player()
+kaamera = Kaamera()
 
 nupp1 = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 240, 400, 100)
 nupp2 = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 - 90,  400, 100)
@@ -324,7 +99,6 @@ def loe_sisend():
 
     return dx, dy
 
-
 #  MAIN LOOP
 
 running = True
@@ -336,7 +110,7 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             if P_OLEK in (MÄNG_SPAWN, MÄNG_KOOBAS, MÄNG_POOD):
-                salvesta_mang()
+                salvesta_mang(mängija, P_OLEK, MAP)
             running = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -345,39 +119,42 @@ while running:
                     MAP = spawn_map
                     mängija.set_start_pos(MAP)
                     P_OLEK = MÄNG_SPAWN
+                    kaamera.tsentreeri(mängija, WIDTH, HEIGHT)
                     SCREEN.fill(MUST)
                     tekst = FONT.render("Loading...", True, VALGE)
                     SCREEN.blit(tekst, tekst.get_rect(center=(WIDTH // 2, HEIGHT // 2)))
                     pygame.display.flip()
-                    # Sunnime kaamera kohe mängija peale, et ta ei peaks "järele jooksma"
-                    kaamera_x = mängija.pix_x - (WIDTH // 2) + (RUUT // 2)
-                    kaamera_y = mängija.pix_y - (HEIGHT // 2) + (RUUT // 2)
                     time.sleep(0.3)
-                    pygame.mixer.music.load(MUUSIKA_SPAWN)
-                    pygame.mixer.music.play(-1)
-                    praeg_laul = "forest"
+                    muusika.mängi_kaardi_muusika(P_OLEK)
                 elif nupp2.collidepoint(event.pos):
-                    lae_mang()
+                    tulemus = lae_mang(mängija)
+                    if tulemus:
+                        P_OLEK, salvestatud_kaart = tulemus
+
+                        if P_OLEK == MÄNG_KOOBAS:
+                            MAP = salvestatud_kaart
+                        elif P_OLEK == MÄNG_SPAWN:
+                            MAP = spawn_map
+                        elif P_OLEK == MÄNG_POOD:
+                            MAP = minu_poe_kaart
+
+                        muusika.mängi_kaardi_muusika(P_OLEK)
+                        kaamera.tsentreeri(mängija, WIDTH, HEIGHT)
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 if P_OLEK in (MÄNG_SPAWN, MÄNG_KOOBAS, MÄNG_POOD, VÕIT):
-                    salvesta_mang()
+                    salvesta_mang(mängija, P_OLEK, MAP)
                     P_OLEK = MENU
-                    pygame.mixer.music.load(MUUSIKA_MENÜÜ)
-                    pygame.mixer.music.play(-1)
-                    praeg_laul = "menu"
+                    muusika.mängi_menüü()
             # Debug toggle
             if event.key == pygame.K_F1:
                 DEBUG_HITBOX = not DEBUG_HITBOX
 
         elif event.type == LAUL_LÄBI:
-            if praeg_laul == "intro":
-                pygame.mixer.music.load(MUUSIKA_CAVE_REP)
-                pygame.mixer.music.play(-1)
-                praeg_laul = "loop"
+            muusika.laul_lõppes()
 
-    # ==================== MENÜÜ ====================
+    # MENÜÜ
     if P_OLEK == MENU:
         for nupp, tekst_str in [
             (nupp1, "New Game"), (nupp2, "Continue"),
@@ -387,36 +164,29 @@ while running:
             tekst = FONT.render(tekst_str, True, MUST)
             SCREEN.blit(tekst, tekst.get_rect(center=nupp.center))
 
-    # ==================== MÄNG ====================
+    # MÄNG 
     elif P_OLEK in (MÄNG_SPAWN, MÄNG_KOOBAS, MÄNG_POOD):
 
-        # ── SISEND + LIIKUMINE ──
+        # SISEND + LIIKUMINE
         dx, dy  = loe_sisend()
         tulemus = mängija.move_vaba(dx, dy, MAP)
 
-        # ── KAAMERA ──
-        siht_x = mängija.pix_x - (WIDTH // 2) + (RUUT // 2)
-        siht_y = mängija.pix_y - (HEIGHT // 2) + (RUUT // 2)
-        kaamera_x += (siht_x - kaamera_x) * 0.225
-        kaamera_y += (siht_y - kaamera_y) * 0.225
+        # KAAMERA
+        kaamera.jälgi(mängija, WIDTH, HEIGHT)
 
-        # ── ÜLEMINEKUD ──
+        # ÜLEMINEKUD
         if tulemus != 0:
             if P_OLEK == MÄNG_SPAWN and tulemus == 1:
                 MAP = koobas(20, 30)
                 mängija.set_start_pos(MAP)
                 P_OLEK = MÄNG_KOOBAS
-                pygame.mixer.music.load(MUUSIKA_CAVE_ALG)
-                pygame.mixer.music.play(0)
-                praeg_laul = "intro"
+                muusika.mängi_kaardi_muusika(P_OLEK)
                 
             elif P_OLEK == MÄNG_SPAWN and tulemus == 2:
                 MAP = minu_poe_kaart
                 mängija.set_start_pos(MAP)
                 P_OLEK = MÄNG_POOD
-                pygame.mixer.music.load(MUUSIKA_POOD)
-                pygame.mixer.music.play(-1)
-                praeg_laul = "shop"
+                muusika.mängi_kaardi_muusika(P_OLEK)
 
             elif P_OLEK == MÄNG_KOOBAS and tulemus == 1:
                 P_OLEK = VÕIT
@@ -425,29 +195,18 @@ while running:
                 MAP = spawn_map
                 mängija.set_start_pos(MAP)
                 P_OLEK = MÄNG_SPAWN
-                pygame.mixer.music.load(MUUSIKA_SPAWN)
-                pygame.mixer.music.play(-1)
-                praeg_laul = "forest"
-
-            # Kaamera uuendus pärast üleminekut
-            kaamera_x = int(mängija.pix_x - (WIDTH  // 2) + (RUUT // 2))
-            kaamera_y = int(mängija.pix_y - (HEIGHT // 2) + (RUUT // 2))
+                muusika.mängi_kaardi_muusika(P_OLEK)
+                
+            kaamera.tsentreeri(mängija, WIDTH, HEIGHT)
 
         # ── JOONISTAMINE ──
-        if P_OLEK == MÄNG_SPAWN:
-            joonista_kaart(MAP, SPAWN_VÄRVID, kaamera_x, kaamera_y, SPAWN_PILDID)
-        elif P_OLEK == MÄNG_KOOBAS:
-            joonista_kaart(MAP, KOOBAS_VÄRVID, kaamera_x, kaamera_y, KOOBAS_PILDID)
-        elif P_OLEK == MÄNG_POOD:
-            joonista_kaart(MAP, POOD_VÄRVID, kaamera_x, kaamera_y, POOD_PILDID)
+        info = KAARDI_INFO[P_OLEK]
+        joonista_kaart(MAP, info["värvid"], kaamera.x, kaamera.y, info["pildid"])
 
-        # Mängija peale kaarti
-        if P_OLEK in (MÄNG_SPAWN, MÄNG_KOOBAS, MÄNG_POOD):
-            mängija.draw(kaamera_x, kaamera_y)
+        mängija.draw(SCREEN, kaamera.x, kaamera.y)
 
-            # Debug: näita hitboxi (F1 toggle)
-            if DEBUG_HITBOX:
-                mängija.draw_hitbox(kaamera_x, kaamera_y)
+        if DEBUG_HITBOX:
+            mängija.draw_hitbox(SCREEN, kaamera.x, kaamera.y)
 
         # Pimedus koopas
         if P_OLEK == MÄNG_KOOBAS:
