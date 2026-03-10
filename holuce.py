@@ -1,3 +1,4 @@
+import random
 import pygame
 import os
 import json
@@ -8,9 +9,9 @@ from kaardid import minu_poe_kaart
 
 pygame.init()
 pygame.mixer.init()
-# ============================================================
+
 #  MUUSIKA
-# ============================================================
+
 MUUSIKA_MENÜÜ    = os.path.join("assets/music", "menu.mp3")
 MUUSIKA_CAVE_ALG = os.path.join("assets/music", "cave_begin.mp3")
 MUUSIKA_CAVE_REP = os.path.join("assets/music", "cave_rep.mp3")
@@ -23,9 +24,9 @@ pygame.mixer.music.load(MUUSIKA_MENÜÜ)
 pygame.mixer.music.play(-1)
 praeg_laul = "menu"
 
-# ============================================================
+
 #  EKRAAN
-# ============================================================
+
 info   = pygame.display.Info()
 WIDTH  = info.current_w
 HEIGHT = info.current_h - 60
@@ -39,10 +40,11 @@ kaamera_y = 0
 SPRITE_ENTITIES_FOLDER = "assets/entities"
 SPRITE_PILDID_FOLDER   = "assets/pictures"
 
-# ============================================================
+
 #  VÄRVID
-# ============================================================
+
 FONT            = pygame.font.SysFont("arial", 60)
+PLAYER_RUUT = 128
 RUUT            = 64
 VALGE           = (255, 255, 255)
 MUST            = (0,   0,   0)
@@ -54,17 +56,19 @@ TUME_ROHELINE   = (0,   70,  0)
 TUME_PRUUN      = (100, 50,  0)
 TUME_TUME_PRUUN = (65,  30,  0)
 
-# ============================================================
 #  PILDID
-# ============================================================
+
 grass_pilt = pygame.image.load(
-    os.path.join(SPRITE_PILDID_FOLDER, "grassy.png")
+    os.path.join(SPRITE_PILDID_FOLDER, "muru.png")
 ).convert_alpha()
 grass_pilt = pygame.transform.scale(grass_pilt, (RUUT, RUUT))
+grass_pilt1 = pygame.image.load(
+    os.path.join(SPRITE_PILDID_FOLDER, "muru2.png")
+).convert_alpha()
+grass_pilt1 = pygame.transform.scale(grass_pilt1, (RUUT, RUUT))
 
-# ============================================================
 #  OLEKUD
-# ============================================================
+
 MENU        = "menu"
 MÄNG_KOOBAS = "mäng"
 MÄNG_SPAWN  = "spawn"
@@ -72,9 +76,9 @@ MÄNG_POOD   = "pood"
 VÕIT        = "võit"
 P_OLEK      = MENU
 
-# ============================================================
-#  KAARTIDE VÄRVITABELID
-# ============================================================
+
+#  KAARTIDE VÄRVID
+
 SPAWN_VÄRVID = {
     "E":  TUME_ROHELINE,
     "K":  TUME_HALL,
@@ -101,9 +105,9 @@ POOD_VÄRVID = {
 }
 POOD_PILDID = set()
 
-# ============================================================
-#  JOONISTAMINE
-# ============================================================
+# JOONISTAMINE
+random.randint(1,2)
+
 def joonista_kaart(kaart, värvid, kx, ky, pildid=None):
     if pildid is None:
         pildid = set()
@@ -114,13 +118,12 @@ def joonista_kaart(kaart, värvid, kx, ky, pildid=None):
             if sx < -RUUT or sx > WIDTH or sy < -RUUT or sy > HEIGHT:
                 continue
             if ruut in pildid:
-                SCREEN.blit(grass_pilt, (sx, sy))
+                SCREEN.blit(grass_pilt1, (sx, sy))
             elif ruut in värvid:
                 pygame.draw.rect(SCREEN, värvid[ruut], (sx, sy, RUUT, RUUT))
 
-# ============================================================
-#  VALGUS
-# ============================================================
+# VALGUS
+
 valgus = pygame.Surface((WIDTH, HEIGHT))
 def loo_valgus():
     valgus.fill((0, 0, 0))
@@ -130,15 +133,11 @@ def loo_valgus():
     pygame.draw.circle(valgus, (255, 255, 255), (cx, cy), int(RUUT * 1.5))
 loo_valgus()
 
-# ============================================================
-#  AKTIIVNE KAART
-# ============================================================
+# AKTIIVNE KAART
 MAP = spawn_map
 
-# ============================================================
+
 #  PLAYER KLASS — VABA LIIKUMINE
-# ============================================================
-# Läbitavad ruudud (kasutavad kõik kaardid)
 VABAD = {".", "S", "D", "g", "TT", "SS"}
 
 class Player:
@@ -146,53 +145,35 @@ class Player:
         self.pix_x = 1.0 * RUUT
         self.pix_y = 1.0 * RUUT
         self.kiirus = 7
+        self.hb_ox = 23      # hitbox X nihe sprite'i seest
+        self.hb_oy = 95      # hitbox Y nihe sprite'i seest
+        self.hb_w  = 48      # hitbox laius
+        self.hb_h  = 32      # hitbox kõrgus
 
-        # ── HITBOX konfig ──
-        # Sprite on 64x64, aga hitbox on väiksem:
-        #
-        #   ┌────────────────┐  64px (sprite)
-        #   │                │
-        #   │    ┌──────┐    │
-        #   │    │HITBOX│    │  <- 32x40, keskele nihutud
-        #   │    │      │    │
-        #   │    └──────┘    │
-        #   └────────────────┘
-        #
-        self.hb_ox = 16      # hitbox X nihe sprite'i seest
-        self.hb_oy = 12      # hitbox Y nihe sprite'i seest
-        self.hb_w  = 32      # hitbox laius
-        self.hb_h  = 40      # hitbox kõrgus
-
-        # Pildid
         pilt = os.path.join(SPRITE_ENTITIES_FOLDER, "player.png")
         lae = pygame.image.load(pilt).convert_alpha()
-        skaleeritud = pygame.transform.scale(lae, (RUUT/2, RUUT))
+        skaleeritud = pygame.transform.scale(lae, (PLAYER_RUUT/2, PLAYER_RUUT))
         self.img_parem = skaleeritud
         self.img_vasak = pygame.transform.flip(skaleeritud, True, False)
         self.image = self.img_parem
 
-    # ── Hitboxi nurkade kontroll ──
     def _on_vaba(self, px, py, kaart):
-        """Kas hitbox positsioonil (px, py) on täielikult vabadel ruutudel?"""
-        # Hitboxi servad
         vasak  = px + self.hb_ox
         parem  = px + self.hb_ox + self.hb_w
         üleval = py + self.hb_oy
         all_   = py + self.hb_oy + self.hb_h
 
-        # Kontrolli kõiki 4 nurka
         nurgad = [
-            (vasak, üleval),   # üleval-vasak
-            (parem, üleval),   # üleval-parem
-            (vasak, all_),     # all-vasak
-            (parem, all_),     # all-parem
+            (vasak, üleval),  
+            (parem, üleval),  
+            (vasak, all_),     
+            (parem, all_),     
         ]
 
         for nx, ny in nurgad:
             gx = int(nx // RUUT)
             gy = int(ny // RUUT)
 
-            # Kaardi piir = sein
             if gy < 0 or gy >= len(kaart) or gx < 0 or gx >= len(kaart[0]):
                 return False
             if kaart[gy][gx] not in VABAD:
@@ -202,11 +183,6 @@ class Player:
 
     # ── Vaba liikumine ──
     def move_vaba(self, dx, dy, kaart):
-        """
-        Liigutab mängijat pikslite kaupa.
-        Libisev kokkupõrge: X ja Y kontrollitakse eraldi.
-        Tagastab: 0=tühi, 1=uks, 2=trepp üles, 3=trepp alla
-        """
         sammx = dx * self.kiirus
         sammy = dy * self.kiirus
 
@@ -231,13 +207,12 @@ class Player:
                     self.pix_y += astme_suund
                 else:
                     break
-        # ── Sprite suund ──
+
         if dx > 0:
             self.image = self.img_parem
         elif dx < 0:
             self.image = self.img_vasak
 
-        # ── Kontroll: millisel ruudul on hitboxi KESKPUNKT? ──
         kesk_x = int((self.pix_x + self.hb_ox + self.hb_w / 2) // RUUT)
         kesk_y = int((self.pix_y + self.hb_oy + self.hb_h / 2) // RUUT)
 
@@ -253,7 +228,6 @@ class Player:
     def draw(self, kx, ky):
         SCREEN.blit(self.image, (self.pix_x - kx+15, self.pix_y - ky))
 
-    # ── Hitboxi joonistamine (DEBUG) ──
     def draw_hitbox(self, kx, ky):
         """Kutsuge seda kui tahate hitboxi näha (punane kast)."""
         hb = pygame.Rect(
@@ -274,9 +248,9 @@ class Player:
         self.pix_x = float(RUUT)
         self.pix_y = float(RUUT)
 
-# ============================================================
+
 #  SALVESTA / LAE
-# ============================================================
+
 def salvesta_mang():
     andmed = {
         "pix_x": mängija.pix_x,
@@ -317,9 +291,9 @@ def lae_mang():
         praeg_laul = "shop"
     print("Mäng laetud!")
 
-# ============================================================
+
 #  INIT
-# ============================================================
+
 mängija   = Player()
 kaamera_x = 0
 kaamera_y = 0
@@ -332,9 +306,9 @@ nupp4 = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 + 210, 400, 100)
 # Debug mode: sea True et näha hitboxi
 DEBUG_HITBOX = False
 
-# ============================================================
+
 #  SISEND
-# ============================================================
+
 def loe_sisend():
     keys = pygame.key.get_pressed()
     dx, dy = 0.0, 0.0
@@ -350,9 +324,9 @@ def loe_sisend():
 
     return dx, dy
 
-# ============================================================
+
 #  MAIN LOOP
-# ============================================================
+
 running = True
 
 while running:
@@ -479,7 +453,7 @@ while running:
         if P_OLEK == MÄNG_KOOBAS:
             SCREEN.blit(valgus, (0, 0), special_flags=pygame.BLEND_MULT)
 
-    # ==================== VÕIT ====================
+
     elif P_OLEK == VÕIT:
         tekst = FONT.render("Võitsid mängu!", True, VALGE)
         SCREEN.blit(tekst, tekst.get_rect(center=(WIDTH // 2, HEIGHT // 2)))
