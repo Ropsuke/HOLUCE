@@ -27,7 +27,7 @@ class Player:
         except FileNotFoundError:
             print("Hoiatus: player.png ei leitud! Kasutan sinist kasti.")
             skaleeritud = pygame.Surface((PLAYER_RUUT // 2, PLAYER_RUUT))
-            skaleeritud.fill(VÄRVID["SININE"])
+            skaleeritud.fill(SININE)
             self.img_parem = skaleeritud
             self.img_vasak = skaleeritud
 
