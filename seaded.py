@@ -27,6 +27,7 @@ TUME_TUME_PRUUN = (65, 30, 0)
 
 SPRITE_ENTITIES_FOLDER = "assets/entities"
 SPRITE_PILDID_FOLDER   = "assets/pictures"
+SPRITE_PILDID_TEST   = "assets/pictures_test"
 
 MUUSIKA_MENÜÜ    = os.path.join("assets/music", "menu.mp3")
 MUUSIKA_CAVE_ALG = os.path.join("assets/music", "cave_begin.mp3")
