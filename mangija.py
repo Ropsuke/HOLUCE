@@ -1,13 +1,14 @@
 import os
 import pygame
 from seaded import *
-
+from animatsioonid import *
 class Player:
     def __init__(self):
         self.pix_x = 1.0 * RUUT
         self.pix_y = 1.0 * RUUT
         self.kiirus = 7
-
+        self._suund_parem = True
+        self._liigub = False
         # Hitbox seaded
         self.hb_w  = 44
         self.hb_h  = 32
@@ -18,20 +19,36 @@ class Player:
         self._laadi_pilt()
 
     def _laadi_pilt(self):
-        pilt_path = os.path.join(SPRITE_ENTITIES_FOLDER, "player.png")
-        try:
-            lae = pygame.image.load(pilt_path).convert_alpha()
-            skaleeritud = pygame.transform.scale(lae, (PLAYER_RUUT // 2, PLAYER_RUUT))
-            self.img_parem = skaleeritud
-            self.img_vasak = pygame.transform.flip(skaleeritud, True, False)
-        except FileNotFoundError:
-            print("Hoiatus: player.png ei leitud! Kasutan sinist kasti.")
-            skaleeritud = pygame.Surface((PLAYER_RUUT // 2, PLAYER_RUUT))
-            skaleeritud.fill(SININE)
-            self.img_parem = skaleeritud
-            self.img_vasak = skaleeritud
+        sheet_path  = os.path.join(SPRITE_ENTITIES_FOLDER, "mangija.png")
+        idle_path   = os.path.join(SPRITE_ENTITIES_FOLDER, "player.png")
+        kaader_w = 512
+        kaader_h = 1056
+        w = PLAYER_RUUT // 2
+        h = PLAYER_RUUT
+        self._anim = AnimatsioonHaldur()
 
-        self.image = self.img_parem
+        # Seismine — player.png
+        if os.path.exists(idle_path):
+            idle = pygame.image.load(idle_path).convert_alpha()
+            idle = pygame.transform.scale(idle, (w, h))
+            seisab_frames = [idle]
+        else:
+            seisab_frames = loo_varukaadrid((0, 0, 255), w, h, arv=1)
+
+    # Kõndimine — mängija.png
+        if os.path.exists(sheet_path):
+            kõnnib_frames = laadi_sprite_sheet(sheet_path, kaader_w, kaader_h, rida=0,
+                                            skaleeritud_w=w, skaleeritud_h=h)
+        else:
+            kõnnib_frames = loo_varukaadrid((0, 0, 255), w, h, arv=4)
+
+        self._anim.lisa("seisab", Animatsioon(seisab_frames, fps=1))
+        self._anim.lisa("kõndib", Animatsioon(kõnnib_frames, fps=6))
+        self._anim.sea("seisab")
+        print("frames arv:", len(kõnnib_frames))
+        print("frames[0] suurus:", kõnnib_frames[0].get_size())
+        print("idle suurus:", seisab_frames[0].get_size())
+        print("praegune anim:", self._anim.praegune_nimi)
 
     def _on_vaba(self, px, py, kaart):
         vasak  = px + self.hb_ox
@@ -85,9 +102,11 @@ class Player:
 
         # Suund
         if dx > 0:
-            self.image = self.img_parem
+            self._suund_parem = True
         elif dx < 0:
-            self.image = self.img_vasak
+            self._suund_parem = False
+
+        self._liigub = dx != 0 or dy != 0
 
         # Portaalide kontroll
         return self._kontrolli_portaal(kaart)
@@ -105,7 +124,16 @@ class Player:
         return 0
 
     def draw(self, screen, kx, ky):
-        screen.blit(self.image, (self.pix_x - kx, self.pix_y - ky))
+        if self._liigub:
+            self._anim.sea("kõndib")
+        else:
+            self._anim.sea("seisab")
+        self._anim.uuenda(1/60)
+
+        kaader = self._anim.praegune_kaader()
+        if not self._suund_parem:
+            kaader = pygame.transform.flip(kaader, True, False)
+        screen.blit(kaader, (self.pix_x - kx, self.pix_y - ky))
 
     def draw_hitbox(self, screen, kx, ky):
         hb = pygame.Rect(
@@ -120,7 +148,7 @@ class Player:
             for x, ruut in enumerate(rida):
                 if ruut == "S":
                     self.pix_x = float(x * RUUT)
-                    self.pix_y = float(y * RUUT)
+                    self.pix_y = float(y * RUUT) - self.hb_oy
                     return
         self.pix_x = float(RUUT)
         self.pix_y = float(RUUT)

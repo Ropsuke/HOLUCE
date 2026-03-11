@@ -3,7 +3,7 @@ import pygame
 # EKRAAN
 
 FPS          = 60
-RUUT         = 64
+RUUT         = 70
 PLAYER_RUUT  = 128
 
 # TEKST
